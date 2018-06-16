@@ -1,0 +1,144 @@
+body {
+    font-family: 'Times New Roman', Times, serif;
+}
+
+#header {
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 10%;
+    width: 100%;
+    background-color: gray;
+    color: white;
+    font-size: 30px;
+    text-transform: uppercase;
+    text-emphasis: bold;
+    text-align: center;
+    line-height: 50px;
+    z-index: 1;
+}
+
+#save-button {
+    border: none;
+    margin: 10px;
+    width: 30px;
+    height: 30px;
+    background: url("icons/save.ico");
+    float: left;
+}
+
+#run-button {
+    border: none;
+    margin: 10px;
+    width: 30px;
+    height: 30px;
+    background: url("icons/run.ico");
+    float: left;
+}
+
+#exit-button {
+    border: none;
+    margin: 10px;
+    width: 30px;
+    height: 30px;
+    background: url("icons/exit.ico");
+    float: left;
+}
+
+#sidenav {
+    position: fixed;
+    z-index: 2;
+    top: 0%;
+    left: 0;
+    height: 99%;
+    width: 20%;
+    background-color: #fff;
+}
+
+#buttons {
+    display: flex;
+    justify-content: center;
+}
+
+#current-file {
+    position: fixed;
+    top: 10%;
+    left: 20%;
+    height: 3%;
+    width: 80%;
+    background-color: blue;
+    color: white;
+    font-size: 15px;
+    text-align: center;
+    line-height: 15px;
+    font-family: 'Times New Roman', Times, serif;
+}
+
+#display {
+    position: fixed;
+    top: 13%;
+    left: 20%;
+    height: 87%;
+    width: 80%;
+    background-color: #b2babe;
+    overflow-y: scroll;
+    line-height: 125%;
+}
+
+.sidenav a,
+.dir {
+    font-family: 'Times New Roman', Times, serif;
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: bold;
+    color: #111;
+    display: block;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    border-style: solid;
+    border-color: black;
+    border-width: 1px;
+}
+
+.file {
+    font-family: 'Times New Roman', Times, serif;
+    text-decoration: none;
+    font-size: 20px;
+    color: #111;
+    display: block;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    border-style: solid;
+    border-color: black;
+    border-width: 0px;
+}
+
+.sidenav a:hover,
+.dir:hover,
+.file:hover {
+    color: #aaa;
+}
+
+.active {
+    background-color: gray;
+    color: white;
+}
+
+.file-container {
+    display: none;
+    background-color: #ccc;
+    padding-left: 8px;
+}
+
+.caret-down {
+    float: right;
+    padding-right: 5px;
+}

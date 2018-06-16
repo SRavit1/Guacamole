@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<title>Guna Explorer</title>
+
+<head>
+    <link rel='stylesheet' href='styles.css' type='text/css'>
+</head>
+
+<body>
+    <div id='header'>Workspace</div>
+    <div id='sidenav'>
+        <form id='run' method='POST' action='run'><button id='run-button'></button></form>
+        <form id='save' method='POST' action='save'><button id='save-button'></button></form>
+        <form method='POST' action='exit'><button id='exit-button'></button></form>
+    </div>
+    <textarea id='current-file' name='file-name' form='save' , 'run' readonly>file name</textarea>
+    <textarea id='display' name='content' form='save' , 'run'>CONTENT GOES HERE</textarea>
+</body>
+
+</html>
+
+<script>
+    /* Handling directory click */
+    var dropdown = document.getElementsByClassName('dir');
+
+    for (var i = 0; i < dropdown.length; i++) {
+        dropdown[i].addEventListener('click', function() {
+            var this_ddc = this.nextElementSibling;
+            if (this_ddc == null) {
+                document.getElementById('display').innerHTML = 'NO CONTENT HERE';
+            } else {
+                if (this_ddc.style.display === 'block') {
+                    this.classList.remove('active');
+                    this_ddc.style.display = 'none';
+                } else {
+                    var dropdown = document.getElementsByClassName('dir');
+                    for (var j = 0; j < dropdown.length; j++) {
+                        dropdown[j].classList.remove('active');
+                        var ind_ddc = dropdown[j].nextElementSibling;
+                        if (ind_ddc != null) {
+                            ind_ddc.style.display = 'none';
+                        }
+                    }
+                    this.classList.toggle('active');
+                    this_ddc.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    /*handling file click*/
+    var file = document.getElementsByClassName('file');
+
+    for (var i = 0; i < file.length; i++) {
+        file[i].addEventListener('click',
+            function() {
+                var url = this.name;
+                fetch(url)
+                    .then(function(res) {
+                        return res.text();
+                    })
+                    .then(function(data) {
+                        document.getElementById('current-file').innerHTML = url;
+                        document.getElementById('display').innerHTML = data;
+                    });
+            }
+        );
+    }
+
+    document.getElementById('run-button').addEventListener('click',
+        function() {
+            console.log('run');
+        });
+</script>
