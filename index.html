@@ -11,10 +11,10 @@
     <div id='sidenav'>
         <form id='run' method='POST' action='run'><button id='run-button'></button></form>
         <form id='save' method='POST' action='save'><button id='save-button'></button></form>
-        <form method='POST' action='exit'><button id='exit-button'></button></form>
+        <form id='exit' method='POST' action='exit'><button id='exit-button'></button></form>
     </div>
-    <textarea id='current-file' name='file-name' form='save' , 'run' readonly>file name</textarea>
-    <textarea id='display' name='content' form='save' , 'run'>CONTENT GOES HERE</textarea>
+    <textarea id='current-file' name='file-name' form='save' readonly>file name</textarea>
+    <textarea id='display' name='content' form='save'>CONTENT GOES HERE</textarea>
 </body>
 
 </html>
@@ -54,21 +54,16 @@
     for (var i = 0; i < file.length; i++) {
         file[i].addEventListener('click',
             function() {
-                var url = this.name;
-                fetch(url)
+                var name = this.name;
+                fetch("client/" + name)
                     .then(function(res) {
                         return res.text();
                     })
                     .then(function(data) {
-                        document.getElementById('current-file').innerHTML = url;
+                        document.getElementById('current-file').innerHTML = name;
                         document.getElementById('display').innerHTML = data;
                     });
             }
         );
     }
-
-    document.getElementById('run-button').addEventListener('click',
-        function() {
-            console.log('run');
-        });
-</script>
+</script>98

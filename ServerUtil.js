@@ -1,16 +1,4 @@
-function getFiles() {
-    var files = [
-        [".", "lib.cfg", "main.lib", "run.tcl"],
-        ["cell1", "cell1.cdf", "cell1.cfg"],
-        ["cell2", "cell2.cdf", "cell2.cfg"],
-        ["cell3", "cell3.cdf", "cell3.cfg"],
-        ["cellN", "cellN.cdf", "cellN.cfg"]
-    ];
-    return files;
-}
-
-module.exports.getFiles = getFiles();
-/*var fs = require('fs');
+var fs = require('fs');
 var path = require('path');
 
 var guna_ws = function(dir, done) {
@@ -80,5 +68,4 @@ guna_ws(gunaws_root, function(err, ws_files) {
         }
     }
     module.exports.getFiles = ws_buttons;
-    console.log(ws_buttons);
-});*/
+});
