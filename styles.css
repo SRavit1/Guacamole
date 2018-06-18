@@ -3,12 +3,11 @@ body {
 }
 
 #header {
-    align-items: center;
     position: fixed;
     top: 0;
-    left: 0;
+    left: 20%;
     height: 10%;
-    width: 100%;
+    width: 80%;
     background-color: gray;
     color: white;
     font-size: 30px;
@@ -19,38 +18,52 @@ body {
     z-index: 1;
 }
 
-#save-button {
-    border: none;
-    margin: 10px;
-    width: 30px;
-    height: 30px;
-    background: url("icons/save.ico");
-    float: left;
+#run-button {
+    background: url("icons/run.ico");
+    border: solid;
+    border-width: 1px;
+    background-position: 50%;
+    background-repeat: no-repeat;
+    height: 48px;
+    width: 48px;
+    margin: 5%;
 }
 
-#run-button {
-    border: none;
-    margin: 10px;
-    width: 30px;
-    height: 30px;
-    background: url("icons/run.ico");
-    float: left;
+#save-button {
+    background: url("icons/save.ico");
+    border: solid;
+    border-width: 1px;
+    background-position: 50%;
+    background-repeat: no-repeat;
+    max-height: 100%;
+    height: 48px;
+    width: 48px;
+    margin: 5%;
 }
 
 #exit-button {
-    border: none;
-    margin: 10px;
-    width: 30px;
-    height: 30px;
     background: url("icons/exit.ico");
-    float: left;
+    border: solid;
+    border-width: 1px;
+    background-position: 50%;
+    background-repeat: no-repeat;
+    height: 48px;
+    width: 48px;
+    margin: 5%;
+}
+
+#break {
+    color: #eee;
+    background-color: #eee;
+    height: 1px;
+    border: none;
 }
 
 #sidenav {
     position: fixed;
     z-index: 2;
     top: 0%;
-    left: 0;
+    left: 0%;
     height: 99%;
     width: 20%;
     background-color: #fff;
@@ -67,8 +80,8 @@ body {
     left: 20%;
     height: 3%;
     width: 80%;
-    background-color: blue;
-    color: white;
+    background-color: white;
+    color: black;
     font-size: 15px;
     text-align: center;
     line-height: 15px;
@@ -81,9 +94,14 @@ body {
     left: 20%;
     height: 87%;
     width: 80%;
-    background-color: #b2babe;
+    background-color: #fff;
+    background-image: url(Logo.png);
+    background-repeat: no-repeat;
+    background-position-x: 50%;
+    background-position-y: 50%;
     overflow-y: scroll;
     line-height: 125%;
+    font-family: monospace;
 }
 
 .sidenav a,

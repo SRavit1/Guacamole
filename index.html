@@ -7,14 +7,20 @@
 </head>
 
 <body>
-    <div id='header'>Workspace</div>
     <div id='sidenav'>
-        <form id='run' method='POST' action='run'><button id='run-button'></button></form>
-        <form id='save' method='POST' action='save'><button id='save-button'></button></form>
-        <form id='exit' method='POST' action='exit'><button id='exit-button'></button></form>
+        <center>
+            <div id='icons'>
+                <button id='run-button'></button>
+                <button id='save-button'></button>
+                <button id='exit-button'></button>
+            </div>
+            <hr id='break' />
+        </center>
+        <!--INSERT BUTTONS HERE-->
     </div>
-    <textarea id='current-file' name='file-name' form='save' readonly>file name</textarea>
-    <textarea id='display' name='content' form='save'>CONTENT GOES HERE</textarea>
+    <div id='header'>Workspace</div>
+    <textarea id='current-file' name='file-name' readonly></textarea>
+    <textarea id='display' name='content' class='content'></textarea>
 </body>
 
 </html>
@@ -27,7 +33,7 @@
         dropdown[i].addEventListener('click', function() {
             var this_ddc = this.nextElementSibling;
             if (this_ddc == null) {
-                document.getElementById('display').innerHTML = 'NO CONTENT HERE';
+                document.getElementById('display').value = 'NO CONTENT HERE';
             } else {
                 if (this_ddc.style.display === 'block') {
                     this.classList.remove('active');
@@ -54,16 +60,69 @@
     for (var i = 0; i < file.length; i++) {
         file[i].addEventListener('click',
             function() {
+                save();
                 var name = this.name;
                 fetch("client/" + name)
                     .then(function(res) {
                         return res.text();
                     })
                     .then(function(data) {
-                        document.getElementById('current-file').innerHTML = name;
-                        document.getElementById('display').innerHTML = data;
+                        document.getElementById('current-file').value = name;
+                        document.getElementById('display').value = data;
                     });
             }
         );
     }
-</script>98
+
+    document.getElementById('save-button').addEventListener('click', function() {
+        save();
+    });
+
+    function save() {
+        console.log('save');
+        var http = new XMLHttpRequest();
+        http.open('POST', '/save', true);
+        http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+        var params = document.getElementById('current-file').value;
+        params += "&" + document.getElementById('display').value;
+        http.send(params);
+    }
+
+    document.getElementById('exit-button').addEventListener('click', function() {
+        httpGetAsync('/exit', exit_callback);
+    });
+
+    var exited = false;
+
+    function exit_callback(text) {
+        if (exited == false) {
+            document.write(text);
+            exited = true;
+        }
+    }
+
+    document.getElementById('run-button').addEventListener('click', function() {
+        save();
+        httpGetAsync('/run', update);
+    });
+
+    function update(text) {
+        var display = document.getElementById('display');
+        display.value = text;
+    }
+
+    function httpGetAsync(theUrl, callback) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if ((xmlHttp.readyState == 4 || xmlHttp.readyState == 3) && xmlHttp.status == 200) {
+                callback(xmlHttp.responseText);
+            } else {
+                console.log("readyState: " + xmlHttp.readyState);
+                console.log("status: " + xmlHttp.status);
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+        xmlHttp.send(null);
+    }
+</script>

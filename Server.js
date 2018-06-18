@@ -1,11 +1,12 @@
-var http = require("http");
+var express = require('express');
+var app = express();
 var fs = require("fs");
 var ServerUtil = require("./ServerUtil.js");
 var mkdirp = require("mkdirp");
 var pretty = require("pretty");
 var rimraf = require("rimraf");
 var path = require("path");
-var spawn = require("child_process").spawn;
+var cp = require("child_process");
 
 function makeID() {
     var id = "";
@@ -17,59 +18,20 @@ function makeID() {
 }
 var id;
 
-var server = http.createServer(function(req, res) {
+var logger = function(req, res, next) {
     if (req.method == 'POST') {
         req.on("data", function(data) {
             var data_string = "" + data;
-            var filename = "client/" + data_string.split("&")[0].substr(10).replace(/\%2F/g, "/");
-            var content = data_string.split("&")[1].substr(8).replace(/\+/g, " ");
+            var filename = "client/" + data_string.split("&")[0].replace(/\%2F/g, "/");
+            var content = data_string.split("&")[1].replace(/\+/g, " ");
             fs.writeFile(filename, content);
         });
-        if (req.url == "/save") {
-            res.end("<!DOCTYPE html><html><body><h3>Thank you for saving!</h3></body></html>");
-        }
-        if (req.url == "/run") {
-            var child = spawn('/home/ravit/app/guna.sh', ['run.tcl']);
-            //child.stdout.pipe(process.stdout);
-            var prev_data = "";
-            var content = "";
-            child.stdout.on('data', function(data) {
-                /*res.pipe(data);
-                content += data;*/
-                var str = "";
-                str += data.toString();
-
-                // just so we can see the server is doing something
-                console.log("data");
-
-                // Flush out line by line.
-                var lines = str.split("\n");
-                for (var i in lines) {
-                    if (i == lines.length - 1) {
-                        str = lines[i];
-                    } else {
-                        // Note: The double-newline is *required*
-                        res.write(lines[i] + "\n\n");
-                    }
-                }
-            });
-            child.on('exit', function(code, signal) {
-                console.log(content);
-                res.end();
-            });
-            //res.end("<!DOCTYPE html><html><body><h3>Thank you for running!</h3></body></html>");
-        }
-        if (req.url == "/exit") {
-            var curr_path = "." + path.sep + id;
-            rimraf("client/" + curr_path, function() {
-                res.end("<!DOCTYPE html><html><body><h3>Thank you for using Guna Explorer!</h3></body></html>");
-            });
-        }
     } else if (req.method == "GET") {
         if (req.url == "/") {
             id = makeID();
             var dirs = ServerUtil.getFiles;
-            var content = fs.readFileSync("index1.html");
+            var index = "" + fs.readFileSync("index.html");
+            var content = index.split("<!--INSERT BUTTONS HERE-->")[0];
             var files;
             for (var i = 0; i < dirs.length; i++) {
                 var dir = dirs[i];
@@ -106,11 +68,38 @@ var server = http.createServer(function(req, res) {
                 }
             }
 
-            var content_end = fs.readFileSync("index2.html");
+            //var content_end = fs.readFileSync("index2.html");
+            var content_end = index.split("<!--INSERT BUTTONS HERE-->")[1];
             content += content_end;
 
             res.write(pretty(content));
             res.end();
+        } else if (req.url == "/run") {
+            res.writeHead(200, {
+                "Content-Type": "text/event-stream",
+                "Cache-control": "no-cache"
+            });
+            var spw = cp.spawn('/home/ravit/app/guna.sh', ['run.tcl']),
+                str = "";
+
+            spw.stdout.on('data', function(data) {
+                str += data.toString();
+
+                // Flush out line by line.
+                var lines = str.split("\n");
+                for (var i in lines) {
+                    if (i == lines.length - 1) {
+                        str = lines[i];
+                    } else { // Note: The double-newline is *required*
+                        res.write(lines[i] + "\n");
+                    }
+                }
+            });
+        } else if (req.url == "/exit") {
+            var curr_path = "." + path.sep + id;
+            rimraf("client/" + curr_path, function() {
+                res.end("<!DOCTYPE html><html><body><h3>Thank you for using Guna Explorer!</h3></body></html>");
+            });
         } else {
             var url = req.url.substr(1);
             fs.readFile(url, function(err, data) {
@@ -125,5 +114,8 @@ var server = http.createServer(function(req, res) {
             });
         }
     }
-});
-server.listen(8093);
+}
+
+app.use(logger);
+
+app.listen(8093, function() {});
