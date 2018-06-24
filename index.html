@@ -1,39 +1,57 @@
 <!DOCTYPE html>
 <html>
-<title>Guna Explorer</title>
 
 <head>
     <link rel='stylesheet' href='styles.css' type='text/css'>
 </head>
 
+<title>Guna, by Paripath</title>
+
 <body>
     <div id='sidenav'>
         <center>
-            <div id='icons'>
-                <button id='run-button'></button>
-                <button id='save-button'></button>
-                <button id='exit-button'></button>
-            </div>
-            <hr id='break' />
+        <a href="http://www.paripath.com/" target=_blank>
+            <img src="ParipathLogo100x100.jpg" style="width: 80px; height: 80px;" alt="paripath.com">
+        </a>
+        <hr id='break' />
+        <div id='icons'>
+            <button id='run-button'></button>
+            <button id='save-button'></button>
+            <button id='exit-button' onclick="window.location.href='http://www.paripath.com'"></button>
+        </div>
+        <hr id='break' />
         </center>
         <!--INSERT BUTTONS HERE-->
+        <div style="display: flex; justify-content: center;">
+        </div>
     </div>
-    <div id='header'>Workspace</div>
     <textarea id='current-file' name='file-name' readonly></textarea>
-    <textarea id='display' name='content' class='content'></textarea>
+    <textarea id='editor' name='content' class='content'></textarea>
+    <pre>
+    <textarea readonly id='terminal'>
+Guna Explorer (Community Edition), v55.18. (c) Paripath Inc.
+------------------------------------------------------------
+
+To characterize available cells/IPs:
+    1. Open run.tcl.
+    2. Add, Delete available cells.
+    3. Click Run.
+    4. See your results in main.lib.
+    </textarea>
+    </pre>
 </body>
 
-</html>
-
 <script>
-    /* Handling directory click */
+    /*Handling directory click*/
+    var id = document.getElementById('identification').innerHTML;
+
     var dropdown = document.getElementsByClassName('dir');
 
     for (var i = 0; i < dropdown.length; i++) {
         dropdown[i].addEventListener('click', function() {
             var this_ddc = this.nextElementSibling;
             if (this_ddc == null) {
-                document.getElementById('display').value = 'NO CONTENT HERE';
+                document.getElementById('editor').value = 'NO CONTENT HERE';
             } else {
                 if (this_ddc.style.display === 'block') {
                     this.classList.remove('active');
@@ -59,38 +77,48 @@
 
     for (var i = 0; i < file.length; i++) {
         file[i].addEventListener('click',
-            function() {
-                save();
+            function() { 
                 var name = this.name;
-                fetch("client/" + name)
-                    .then(function(res) {
-                        return res.text();
-                    })
-                    .then(function(data) {
+                save(
+                    function (){
                         document.getElementById('current-file').value = name;
-                        document.getElementById('display').value = data;
-                    });
+                        httpGetAsync('client/' + name, 
+                            function (text) {
+                                document.getElementById('editor').value = text;
+                            }
+                        );
+                    }
+                );
             }
         );
     }
 
+    //Adding event listener to save button that calls function save
     document.getElementById('save-button').addEventListener('click', function() {
-        save();
+        save(function(){return;});
     });
 
-    function save() {
-        console.log('save');
+    //Sends get request to server with parameters of file name and content
+    // Only saves .tcl and .cfg files on the server. 
+    function save(callback) { 
+        var currentfile = document.getElementById('current-file').value;
+        var fext = currentfile.slice((currentfile.lastIndexOf(".") - 1 >>> 0) + 2);
+        if (currentfile == "" || (fext != 'cfg' && fext != 'tcl') ) {
+            callback();
+            return ;
+        }
         var http = new XMLHttpRequest();
         http.open('POST', '/save', true);
         http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-
-        var params = document.getElementById('current-file').value;
-        params += "&" + document.getElementById('display').value;
+        var content = document.getElementById('editor').value;
+        var params = currentfile;
+        params += "&" + content;
         http.send(params);
+        callback();
     }
 
     document.getElementById('exit-button').addEventListener('click', function() {
-        httpGetAsync('/exit', exit_callback);
+        alert ("Thank you for using Guna Explorer!");
     });
 
     var exited = false;
@@ -98,18 +126,64 @@
     function exit_callback(text) {
         if (exited == false) {
             document.write(text);
+            alert("Thank you for using Guna Explorer!");
             exited = true;
         }
     }
 
-    document.getElementById('run-button').addEventListener('click', function() {
-        save();
-        httpGetAsync('/run', update);
+    document.getElementById('run-button').addEventListener('click', function() {       
+	    save(function() {
+            httpGetAsync('/run/' + id,  update);
+            alert("Running characterization on the server(s).");
+        });
     });
 
     function update(text) {
-        var display = document.getElementById('display');
-        display.value = text;
+        var terminal  = document.getElementById('terminal');
+        terminal.value = text;
+        var main_lib = '/' + id + '/main.lib' ;
+        document.getElementsByClassName('file').namedItem(main_lib).click();
+        if (text.includes("ENDOFFILE")==true){
+            text = text.replace("ENDOFFILE", "");
+
+
+            document.getElementById('editor').style.cursor = "auto";
+            document.getElementById('terminal').style.cursor = "auto";
+            document.getElementById('run-button').style.cursor = "auto";
+            document.getElementById('run-button').disabled = false;
+            document.getElementById('save-button').style.cursor = "auto";
+            document.getElementById('save-button').disabled = false;
+            var dropdown = document.getElementsByClassName('dir');
+            for (var i = 0; i < dropdown.length; i++) {
+                dropdown[i].style.cursor = "auto";
+                dropdown[i].disabled=false;         
+            }
+            
+            var file = document.getElementsByClassName('file');
+            for (var i = 0; i < file.length; i++) {
+                file[i].style.cursor = "auto";
+                file[i].disabled=false;
+            }
+        } else {
+            
+            document.getElementById('editor').style.cursor = "wait";
+            document.getElementById('terminal').style.cursor = "wait";
+            document.getElementById('run-button').style.cursor = "wait";
+            document.getElementById('run-button').disabled = true;
+            document.getElementById('save-button').style.cursor = "wait";
+            document.getElementById('save-button').disabled = true;
+            var dropdown = document.getElementsByClassName('dir');
+            for (var i = 0; i < dropdown.length; i++) {
+                dropdown[i].style.cursor = "wait";
+                dropdown[i].disabled=true;         
+            }
+            
+            var file = document.getElementsByClassName('file');
+            for (var i = 0; i < file.length; i++) {
+                file[i].style.cursor = "wait";
+                file[i].disabled=true;
+            }
+        }
     }
 
     function httpGetAsync(theUrl, callback) {
@@ -125,4 +199,12 @@
         xmlHttp.open("GET", theUrl, true); // true for asynchronous 
         xmlHttp.send(null);
     }
+
+    // Finally show run.tcl in the editor area.
+    var run_tcl = '/' + id + '/run.tcl' ;
+    document.getElementsByClassName('file').namedItem(run_tcl).click()
 </script>
+
+
+</html>
+

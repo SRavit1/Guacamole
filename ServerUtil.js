@@ -25,9 +25,8 @@ var guna_ws = function(dir, done) {
     });
 };
 
-
 //var gunaws_root = 'C:\\Users\\srohit\\Desktop\\js\\demo';
-var gunaws_root = '/home/ravit/workspace/Guna Explorer/demo';
+var gunaws_root = 'demo/flow';
 
 guna_ws(gunaws_root, function(err, ws_files) {
 
@@ -67,5 +66,10 @@ guna_ws(gunaws_root, function(err, ws_files) {
             }
         }
     }
+    //console.log(ws_buttons);
+
     module.exports.getFiles = ws_buttons;
+    module.exports.pathname = gunaws_root;
+    
 });
+
