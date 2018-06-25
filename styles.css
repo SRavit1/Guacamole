@@ -2,6 +2,25 @@ body {
     font-family: 'Times New Roman', Times, serif;
 }
 
+#login_screen {
+    position: fixed;
+    top: 0%;
+    left: 0%;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.85);
+    z-index: 3;
+    align-contents: center;
+}
+
+#login_button{
+    position: fixed;
+    left: 35%;
+    top: 30%;
+    width: 30%;
+    height: 20%;
+}
+
 #run-button {
     background: url("icons/run.ico");
     border: none;

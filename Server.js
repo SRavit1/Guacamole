@@ -36,34 +36,86 @@ function makeID() {
 var logger = function(req, res, next) {
     //Only POST request made is save, where content is written to filename
     if (req.method == 'POST') {
-        req.on("data", function(data) {
-            var data_string = "" + data;
-            var filename;
-            var content;
-            if (data_string.split("&")[0] != null) {
-                filename = "client" + path.sep + data_string.split("&")[0].replace(/\%2F/g, path.sep);
+        console.log("DBG: POST URL : ", req.url);
+	if (req.url == '/new') {
+            var dirs = ServerUtil.getFiles;
+            var files;
+            var pathname = ServerUtil.pathname;
+            if (!fs.existsSync("client")) {
+                fs.mkdirSync("client");
             }
-            if (data_string.split("&")[1] != null) {
-                content = data_string.split("&")[1].replace(/\+/g, " ");
-            }
-            fs.writeFileSync(filename, content);
 
-        });
+	    req.on("data", function(id) {
+		    
+		    copydir.sync("demo/data", "client/" + id + "/data");
+		    for (var i = 0; i < dirs.length; i++) {
+		        var dir = dirs[i];
+		        var directory;
+		        files = [];
+		        for (var j = 0; j < dir.length; j++) {
+		            if (j == 0) {
+		                directory = dir[j];
+		            } else {
+		                files.push(dir[j]);
+		            }
+		        }
+		        if (directory != ".") {
+		            mkdirp.sync("client" + path.sep + id + path.sep + directory);
+		            for (var j = 0; j < files.length; j++) {
+		                var file_content = fs.readFileSync(pathname + path.sep +  directory + path.sep + files[j]);
+		                var curr_path = "client" + path.sep + id + path.sep + directory + path.sep + files[j];
+		                if (!fs.existsSync(curr_path)) {
+					fs.writeFileSync(curr_path, file_content);
+				}
+		            }
+		        } else {
+			    var base_path = 'client' + path.sep + id;
+		            if (!fs.existsSync(curr_path)) {
+				mkdirp.sync(base_path);
+			    }
+		            for (var j = 0; j < files.length; j++) {
+		                var file_content = fs.readFileSync(pathname  +  path.sep  + files[j]);
+		                var curr_path = base_path + path.sep + files[j];
+				if (!fs.existsSync(curr_path)) {
+					fs.writeFileSync(curr_path, file_content);
+				}
+		            }
+		        }
+            	}
+	});
+	}
+	if (req.url == '/save') {
+	    req.on("data", function(data) {
+		var data_string = "" + data;
+		var filename;
+		var content;
+		if (data_string.split("&")[0] != null) {
+		    filename = "client" + path.sep + data_string.split("&")[0].replace(/\%2F/g, path.sep);
+		}
+		if (data_string.split("&")[1] != null) {
+		    content = data_string.split("&")[1].replace(/\+/g, " ");
+		}
+		console.log ("Save to: " + filename);
+		fs.writeFileSync(filename, content);
+            });
+	} else if (req.url == '/login') {
+	    req.on('data', function(data) {
+                var data_string = "" + data
+                fs.writeFileSync('example.txt', fs.readFileSync('example.txt') + "\n" + data_string);
+            });
+	}
     }
     //GET requests involve the index.html, run, exit, and all other files
     else if (req.method == "GET") {
+	console.log("DBG: GET URL : ", req.url);
         //GET request made when the page loads (makes new id, creates new directory for client)
-        if (req.url == path.sep || req.url == "") {
-            var id = makeID();
+        if (req.url == "/" || req.url == "") {
             var dirs = ServerUtil.getFiles;
             var index = "" + fs.readFileSync("index.html");
             var content = index.split("<!--INSERT BUTTONS HERE-->")[0];
             var files;
             var pathname = ServerUtil.pathname;
-            //Copying entire data directory from demo
-            copydir.sync("demo/data", "client/" + id + "/data");
-            //Copying files from demo/flow using ServerUtil.js
-	    content += "<p id='identification' style='display: none'>" + id + "</p>";
+
             for (var i = 0; i < dirs.length; i++) {
                 var dir = dirs[i];
                 var directory;
@@ -76,27 +128,14 @@ var logger = function(req, res, next) {
                     }
                 }
                 if (directory != ".") {
-                    content += "<button class='dir' name=" + id + path.sep + directory + ">" + directory + "<i class='caret-down'>&#9660</i></button><div class='file-container'>";
-                    mkdirp.sync("client" + path.sep + id + path.sep + directory);
+                    content += "<button class='dir' name=" + directory + ">" + directory + "<i class='caret-down'>&#9660</i></button><div class='file-container'>";
                     for (var j = 0; j < files.length; j++) {
-                        content += "<button class='file' name=" + id + path.sep + directory + path.sep + files[j] + ">" + files[j] + "</button>";
-                        var file_content = fs.readFileSync(pathname + path.sep +  directory + path.sep + files[j]);
-                        
-
-                        var curr_path = "client" + path.sep + id + path.sep + directory + path.sep + files[j];
-                        fs.writeFileSync(curr_path, file_content);
+                        content += "<button class='file' name=" + directory + path.sep + files[j] + ">" + files[j] + "</button>";
                     }
                     content += "</div>";
                 } else {
-                    mkdirp.sync("client/" + id);
                     for (var j = 0; j < files.length; j++) {
-                        content += "<button class='file' name=" + path.sep + id + path.sep + files[j] + ">" + files[j] + "</button>";
-                        var file_content = fs.readFileSync(pathname  +  path.sep  + files[j]);
-                        var curr_path = "client" + path.sep + id + path.sep + files[j];
-                        if (!fs.existsSync("client")) {
-                            fs.mkdirSync("client");
-                        }
-                        fs.writeFileSync(curr_path, file_content);
+                        content += "<button class='file' name=" + path.sep + files[j] + ">" + files[j] + "</button>";
                     }
                 }
             }
@@ -106,10 +145,14 @@ var logger = function(req, res, next) {
             res.write(pretty(content));
             res.end();
         }
+
+
         //GET request made when run button is clicked
         //Creates child process to execute command
         else if (req.url.substr(0,5) == "/run/") {
-	        var id = req.url.substr(5);
+            var id = req.url.substr(5);
+console.log('DBG: req=', req.url);
+console.log('DBG: id=', id);
             res.writeHead(200, {
                 "Content-Type": "text/event-stream",
                 "Cache-control": "no-cache"

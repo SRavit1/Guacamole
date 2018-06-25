@@ -2,12 +2,47 @@
 <html>
 
 <head>
-    <link rel='stylesheet' href='styles.css' type='text/css'>
+    <link rel='stylesheet' href='styles.css' Content-Type='text/css'>
+    <script type="text/javascript" src="http://platform.linkedin.com/in.js">
+	api_key: 868tt52riovazz
+	onLoad: onLinkedInLoad
+	authorize: false
+    </script>
+	<script type="text/javascript">
+		function onLinkedInLoad() {
+		    IN.Event.on(IN, "auth", onLinkedInAuth);
+		}
+
+		function onLinkedInAuth() {
+		    IN.API.Profile("me").fields("first-name", "last-name", "email-address", "public-profile-url", "id").result(function(data) {
+			var data_string = JSON.stringify(data.values);			
+			var http = new XMLHttpRequest();
+			http.open('POST', '/login', true);
+			http.send(data_string);
+			var id = data_string.split("\"id\":\"")[1].split("\"")[0];
+			document.getElementById('login_screen').style.display = 'none';
+			document.getElementById('identification').innerHTML = id;
+			var http1 = new XMLHttpRequest();
+			http1.open('POST', '/new', true);
+			http1.send(id);
+		    }).error(function(data) {
+			console.log(data);
+		    });
+		    //Create/Open User's Directory Here
+		}
+	</script>
 </head>
 
 <title>Guna, by Paripath</title>
 
 <body>
+    <p id='identification' style='display: none'></p>
+    <div id="login_screen">
+	<div id="login_button">
+		<h1> Please log in:</h1>
+		<script type="in/Login"></script>
+	</div>
+    </div>
     <div id='sidenav'>
         <center>
         <a href="http://www.paripath.com/" target=_blank>
@@ -43,7 +78,7 @@ To characterize available cells/IPs:
 
 <script>
     /*Handling directory click*/
-    var id = document.getElementById('identification').innerHTML;
+    var id;
 
     var dropdown = document.getElementsByClassName('dir');
 
@@ -81,8 +116,10 @@ To characterize available cells/IPs:
                 var name = this.name;
                 save(
                     function (){
+			id = document.getElementById('identification').innerHTML;
                         document.getElementById('current-file').value = name;
-                        httpGetAsync('client/' + name, 
+			var file = 'client/' + id + '/' + name;
+                        httpGetAsync(file, 
                             function (text) {
                                 document.getElementById('editor').value = text;
                             }
@@ -101,12 +138,13 @@ To characterize available cells/IPs:
     //Sends get request to server with parameters of file name and content
     // Only saves .tcl and .cfg files on the server. 
     function save(callback) { 
-        var currentfile = document.getElementById('current-file').value;
+        var currentfile = document.getElementById('identification').innerHTML + "/" + document.getElementById('current-file').value;
         var fext = currentfile.slice((currentfile.lastIndexOf(".") - 1 >>> 0) + 2);
         if (currentfile == "" || (fext != 'cfg' && fext != 'tcl') ) {
             callback();
             return ;
         }
+
         var http = new XMLHttpRequest();
         http.open('POST', '/save', true);
         http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -133,8 +171,9 @@ To characterize available cells/IPs:
 
     document.getElementById('run-button').addEventListener('click', function() {       
 	    save(function() {
-            httpGetAsync('/run/' + id,  update);
-            alert("Running characterization on the server(s).");
+		id = document.getElementById('identification').innerHTML
+		httpGetAsync('/run/' + id,  update);
+		alert("Running characterization on the server(s).");
         });
     });
 
@@ -192,8 +231,8 @@ To characterize available cells/IPs:
             if ((xmlHttp.readyState == 4 || xmlHttp.readyState == 3) && xmlHttp.status == 200) {
                 callback(xmlHttp.responseText);
             } else {
-                console.log("readyState: " + xmlHttp.readyState);
-                console.log("status: " + xmlHttp.status);
+                //console.log("readyState: " + xmlHttp.readyState);
+                //console.log("status: " + xmlHttp.status);
             }
         }
         xmlHttp.open("GET", theUrl, true); // true for asynchronous 
