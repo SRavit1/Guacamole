@@ -4,33 +4,40 @@
 <head>
     <link rel='stylesheet' href='styles.css' Content-Type='text/css'>
     <script type="text/javascript" src="http://platform.linkedin.com/in.js">
-	api_key: 868tt52riovazz
-	onLoad: onLinkedInLoad
-	authorize: false
+        api_key: 868 tt52riovazz
+        onLoad: onLinkedInLoad
+        authorize: true
     </script>
-	<script type="text/javascript">
-		function onLinkedInLoad() {
-		    IN.Event.on(IN, "auth", onLinkedInAuth);
-		}
+    <script type="text/javascript">
+        function onLinkedInLoad() {
+            IN.Event.on(IN, "auth", onLinkedInAuth);
+        }
 
-		function onLinkedInAuth() {
-		    IN.API.Profile("me").fields("first-name", "last-name", "email-address", "public-profile-url", "id").result(function(data) {
-			var data_string = JSON.stringify(data.values);			
-			var http = new XMLHttpRequest();
-			http.open('POST', '/login', true);
-			http.send(data_string);
-			var id = data_string.split("\"id\":\"")[1].split("\"")[0];
-			document.getElementById('login_screen').style.display = 'none';
-			document.getElementById('identification').innerHTML = id;
-			var http1 = new XMLHttpRequest();
-			http1.open('POST', '/new', true);
-			http1.send(id);
-		    }).error(function(data) {
-			console.log(data);
-		    });
-		    //Create/Open User's Directory Here
-		}
-	</script>
+        function onLinkedInAuth() {
+            IN.API.Profile("me").fields("first-name", "last-name", "email-address", "public-profile-url", "id").result(function(data) {
+		var fields = data.values["0"];		
+
+                var login = new XMLHttpRequest();
+                login.open('POST', '/login', true);
+                login.send(JSON.stringify(fields));
+
+		var id = fields.id;
+                document.getElementById('identification').innerHTML = id;
+
+                document.getElementById('login_screen').style.display = 'none';
+
+                var mkdir = new XMLHttpRequest();
+                mkdir.open('POST', '/new', true);
+                mkdir.send(id);
+
+		open_file ("/run.tcl", id);
+		
+            }).error(function(data) {
+                console.log(data);
+            });
+            //Create/Open User's Directory Here
+        }
+    </script>
 </head>
 
 <title>Guna, by Paripath</title>
@@ -38,23 +45,22 @@
 <body>
     <p id='identification' style='display: none'></p>
     <div id="login_screen">
-	<div id="login_button">
-		<h1> Please log in:</h1>
-		<script type="in/Login"></script>
-	</div>
+        <div id="login_button">
+            <script type="in/Login"></script>
+        </div>
     </div>
     <div id='sidenav'>
         <center>
-        <a href="http://www.paripath.com/" target=_blank>
-            <img src="ParipathLogo100x100.jpg" style="width: 80px; height: 80px;" alt="paripath.com">
-        </a>
-        <hr id='break' />
-        <div id='icons'>
-            <button id='run-button'></button>
-            <button id='save-button'></button>
-            <button id='exit-button' onclick="window.location.href='http://www.paripath.com'"></button>
-        </div>
-        <hr id='break' />
+            <a href="http://www.paripath.com/" target=_blank>
+                <img src="logo.jpg" style="width: 80px; height: 80px;" alt="paripath.com">
+            </a>
+            <hr id='break' />
+            <div id='icons'>
+                <button id='run-button'></button>
+                <button id='save-button'></button>
+                <button id='exit-button' onclick="window.location.href='http://www.paripath.com'"></button>
+            </div>
+            <hr id='break' />
         </center>
         <!--INSERT BUTTONS HERE-->
         <div style="display: flex; justify-content: center;">
@@ -77,6 +83,16 @@ To characterize available cells/IPs:
 </body>
 
 <script>
+    //changes title of current-file header to filename and changes content of editor to contents of filename
+    function open_file(filename, id) {
+	document.getElementById('current-file').value = filename;
+        var file = 'client/' + id + filename;
+        httpGetAsync(file,
+            function(text) {
+                document.getElementById('editor').value = text;
+            }
+        );
+    }
     /*Handling directory click*/
     var id;
 
@@ -112,15 +128,15 @@ To characterize available cells/IPs:
 
     for (var i = 0; i < file.length; i++) {
         file[i].addEventListener('click',
-            function() { 
+            function() {
                 var name = this.name;
                 save(
-                    function (){
-			id = document.getElementById('identification').innerHTML;
+                    function() {
+                        id = document.getElementById('identification').innerHTML;
                         document.getElementById('current-file').value = name;
-			var file = 'client/' + id + '/' + name;
-                        httpGetAsync(file, 
-                            function (text) {
+                        var file = name.substr(0,1)=="/"?'client/' + id + name:'client/' + id + "/" + name;
+                        httpGetAsync(file,
+                            function(text) {
                                 document.getElementById('editor').value = text;
                             }
                         );
@@ -132,17 +148,19 @@ To characterize available cells/IPs:
 
     //Adding event listener to save button that calls function save
     document.getElementById('save-button').addEventListener('click', function() {
-        save(function(){return;});
+        save(function() {
+            return;
+        });
     });
 
     //Sends get request to server with parameters of file name and content
     // Only saves .tcl and .cfg files on the server. 
-    function save(callback) { 
-        var currentfile = document.getElementById('identification').innerHTML + "/" + document.getElementById('current-file').value;
+    function save(callback) {
+        var currentfile = document.getElementById('current-file').value.substr(0,1)=="/"?document.getElementById('identification').innerHTML + document.getElementById('current-file').value:document.getElementById('identification').innerHTML + "/" + document.getElementById('current-file').value;
         var fext = currentfile.slice((currentfile.lastIndexOf(".") - 1 >>> 0) + 2);
-        if (currentfile == "" || (fext != 'cfg' && fext != 'tcl') ) {
+        if (currentfile == "" || (fext != 'cfg' && fext != 'tcl')) {
             callback();
-            return ;
+            return;
         }
 
         var http = new XMLHttpRequest();
@@ -156,7 +174,7 @@ To characterize available cells/IPs:
     }
 
     document.getElementById('exit-button').addEventListener('click', function() {
-        alert ("Thank you for using Guna Explorer!");
+        alert("Thank you for using Guna Explorer!");
     });
 
     var exited = false;
@@ -169,23 +187,21 @@ To characterize available cells/IPs:
         }
     }
 
-    document.getElementById('run-button').addEventListener('click', function() {       
-	    save(function() {
-		id = document.getElementById('identification').innerHTML
-		httpGetAsync('/run/' + id,  update);
-		alert("Running characterization on the server(s).");
+    document.getElementById('run-button').addEventListener('click', function() {
+        save(function() {
+            id = document.getElementById('identification').innerHTML;
+            httpGetAsync('/run/' + id, update);
+            alert("Running characterization on the server(s).");
         });
     });
 
     function update(text) {
-        var terminal  = document.getElementById('terminal');
+	var id = document.getElementById('identification').innerHTML;
+        var terminal = document.getElementById('terminal');
         terminal.value = text;
-        var main_lib = '/' + id + '/main.lib' ;
-        document.getElementsByClassName('file').namedItem(main_lib).click();
-        if (text.includes("ENDOFFILE")==true){
+	open_file("/main.lib", id);
+        if (text.includes("ENDOFFILE") == true) {
             text = text.replace("ENDOFFILE", "");
-
-
             document.getElementById('editor').style.cursor = "auto";
             document.getElementById('terminal').style.cursor = "auto";
             document.getElementById('run-button').style.cursor = "auto";
@@ -195,16 +211,15 @@ To characterize available cells/IPs:
             var dropdown = document.getElementsByClassName('dir');
             for (var i = 0; i < dropdown.length; i++) {
                 dropdown[i].style.cursor = "auto";
-                dropdown[i].disabled=false;         
+                dropdown[i].disabled = false;
             }
-            
+
             var file = document.getElementsByClassName('file');
             for (var i = 0; i < file.length; i++) {
                 file[i].style.cursor = "auto";
-                file[i].disabled=false;
+                file[i].disabled = false;
             }
         } else {
-            
             document.getElementById('editor').style.cursor = "wait";
             document.getElementById('terminal').style.cursor = "wait";
             document.getElementById('run-button').style.cursor = "wait";
@@ -214,13 +229,13 @@ To characterize available cells/IPs:
             var dropdown = document.getElementsByClassName('dir');
             for (var i = 0; i < dropdown.length; i++) {
                 dropdown[i].style.cursor = "wait";
-                dropdown[i].disabled=true;         
+                dropdown[i].disabled = true;
             }
-            
+
             var file = document.getElementsByClassName('file');
             for (var i = 0; i < file.length; i++) {
                 file[i].style.cursor = "wait";
-                file[i].disabled=true;
+                file[i].disabled = true;
             }
         }
     }
@@ -238,12 +253,7 @@ To characterize available cells/IPs:
         xmlHttp.open("GET", theUrl, true); // true for asynchronous 
         xmlHttp.send(null);
     }
-
-    // Finally show run.tcl in the editor area.
-    var run_tcl = '/' + id + '/run.tcl' ;
-    document.getElementsByClassName('file').namedItem(run_tcl).click()
 </script>
 
 
 </html>
-

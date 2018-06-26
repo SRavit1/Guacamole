@@ -10,15 +10,12 @@ body {
     width: 100%;
     background-color: rgba(255, 255, 255, 0.85);
     z-index: 3;
-    align-contents: center;
 }
 
 #login_button{
-    position: fixed;
-    left: 35%;
-    top: 30%;
-    width: 30%;
-    height: 20%;
+float: left;
+margin-left: 40%;
+margin-top: 10%
 }
 
 #run-button {
@@ -101,7 +98,7 @@ body {
     left: 20%;
     width: 80%;
     background-color: #fff;
-    background-image: url(Logo.png);
+    background-image: url(watermark.png);
     background-repeat: no-repeat;
     background-position-x: 50%;
     background-position-y: 50%;

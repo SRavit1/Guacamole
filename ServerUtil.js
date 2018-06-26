@@ -25,7 +25,6 @@ var guna_ws = function(dir, done) {
     });
 };
 
-//var gunaws_root = 'C:\\Users\\srohit\\Desktop\\js\\demo';
 var gunaws_root = 'demo/flow';
 
 guna_ws(gunaws_root, function(err, ws_files) {
@@ -72,4 +71,3 @@ guna_ws(gunaws_root, function(err, ws_files) {
     module.exports.pathname = gunaws_root;
     
 });
-

@@ -1,188 +1,290 @@
 #!/usr/bin/env node
 
-//Reading and writing to files
-var fs = require("fs");
 //Following two are used in creating the server and GET/POST requests
 var express = require('express');
 var app = express();
 
-//Following gets the files that are currently in the directory
+//Following gets the files to be displayed in sidenav
 var ServerUtil = require("./ServerUtil.js");
-//Making and removing directories
+//Making, removing, and copying directories for client
 var mkdirp = require("mkdirp");
 var rimraf = require("rimraf");
-//Used to get path separator (path.sep)
+var copydir = require("copy-dir");
+//Used to get path separator (path.sep) when working with pathnames
 var path = require("path");
-//Creates separate process for run button
+//Reading and writing to files
+var fs = require("fs");
+//Creates separate process that runs guna
 var cp = require("child_process");
 //Prettifies code
 var pretty = require("pretty");
-var copydir = require("copy-dir");
 
-//Function to make ID for individual clients
-function makeID() {
-    var id = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
-    for (var i = 0; i < 5; i++) {
-        id += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return id;
+var verbose = false;
+if (verbose) {
+	console.log ("VERBOSE ON");
 }
 
-//Variable to store each client's identification
+function getTimestamp () {
+	var login_date = new Date(Date.now());
+	var month = login_date.getMonth();
+	var date = login_date.getDate();
+	var year = login_date.getFullYear();
+
+	var hours = login_date.getHours();
+	var minutes = login_date.getMinutes();
+	var seconds = login_date.getSeconds();
+	var milliseconds = login_date.getMilliseconds();
+
+	var time = hours + ":" + minutes + ":" + seconds + ":" + milliseconds + " " + month + "/" + date + "/" + year;
+	return time;
+}
 
 
-//Logger function for GET/POST requests that server uses
+/*
+Logger function is called whenever a GET/POST request is made
+req - request from client; req.method indicates whether it is GET/POST request, req.url is the url to which the request is made
+res - response to the user (ex: if user asks for lib.cfg, we "write" the file to res)
+next - callback function passed in; not used in logger function
+*/
 var logger = function(req, res, next) {
-    //Only POST request made is save, where content is written to filename
+    //Following if statement handles POST requests
     if (req.method == 'POST') {
-        console.log("DBG: POST URL : ", req.url);
-	if (req.url == '/new') {
+        if (verbose) {
+		console.log("POST: ", req.url);
+	}
+        if (req.url == '/new') {
             var dirs = ServerUtil.getFiles;
-            var files;
-            var pathname = ServerUtil.pathname;
-            if (!fs.existsSync("client")) {
-                fs.mkdirSync("client");
-            }
+            var files = [];
 
-	    req.on("data", function(id) {
-		    
-		    copydir.sync("demo/data", "client/" + id + "/data");
-		    for (var i = 0; i < dirs.length; i++) {
-		        var dir = dirs[i];
-		        var directory;
-		        files = [];
-		        for (var j = 0; j < dir.length; j++) {
-		            if (j == 0) {
-		                directory = dir[j];
-		            } else {
-		                files.push(dir[j]);
-		            }
-		        }
-		        if (directory != ".") {
-		            mkdirp.sync("client" + path.sep + id + path.sep + directory);
-		            for (var j = 0; j < files.length; j++) {
-		                var file_content = fs.readFileSync(pathname + path.sep +  directory + path.sep + files[j]);
-		                var curr_path = "client" + path.sep + id + path.sep + directory + path.sep + files[j];
-		                if (!fs.existsSync(curr_path)) {
-					fs.writeFileSync(curr_path, file_content);
-				}
-		            }
-		        } else {
-			    var base_path = 'client' + path.sep + id;
-		            if (!fs.existsSync(curr_path)) {
-				mkdirp.sync(base_path);
-			    }
-		            for (var j = 0; j < files.length; j++) {
-		                var file_content = fs.readFileSync(pathname  +  path.sep  + files[j]);
-		                var curr_path = base_path + path.sep + files[j];
-				if (!fs.existsSync(curr_path)) {
-					fs.writeFileSync(curr_path, file_content);
-				}
-		            }
-		        }
+            var pathname = ServerUtil.pathname;
+
+            req.on("data", function(id) {
+		if (!fs.existsSync("client/" + id)) {
+                    fs.mkdirSync("client/" + id);
             	}
-	});
-	}
-	if (req.url == '/save') {
-	    req.on("data", function(data) {
-		var data_string = "" + data;
-		var filename;
-		var content;
-		if (data_string.split("&")[0] != null) {
-		    filename = "client" + path.sep + data_string.split("&")[0].replace(/\%2F/g, path.sep);
-		}
-		if (data_string.split("&")[1] != null) {
-		    content = data_string.split("&")[1].replace(/\+/g, " ");
-		}
-		console.log ("Save to: " + filename);
-		fs.writeFileSync(filename, content);
+                copydir.sync("demo/data", "client/" + id + "/data");
+                for (var i = 0; i < dirs.length; i++) {
+                    var dir = dirs[i];
+                    var directory;
+                    files = [];
+                    for (var j = 0; j < dir.length; j++) {
+                        if (j == 0) {
+                            directory = dir[j];
+                        } else {
+                            files.push(dir[j]);
+                        }
+                    }
+                    if (directory != ".") {
+			var directory_pathname = "client" + path.sep + id + path.sep + directory;
+			if (!fs.exists(directory_pathname)) {
+				mkdirp.sync(directory_pathname);
+			}
+                        for (var j = 0; j < files.length; j++) {
+                            var file_content = fs.readFileSync(pathname + path.sep + directory + path.sep + files[j]);
+                            var file_path = "client" + path.sep + id + path.sep + directory + path.sep + files[j];
+                            if (!fs.existsSync(file_path)) {
+                                fs.writeFileSync(file_path, file_content);
+				if (verbose) {
+					console.log("CREATING: " + file_path);
+				}
+                            }
+                        }
+                    } else {
+                        var directory_pathname = 'client' + path.sep + id;
+                        if (!fs.existsSync(directory_pathname)) {
+                            mkdirp.sync(directory_pathname);
+                        }
+                        for (var j = 0; j < files.length; j++) {
+                            var file_content = fs.readFileSync(pathname + path.sep + files[j]);
+                            var file_path = directory_pathname + path.sep + files[j];
+                            if (!fs.existsSync(file_path)) {
+                                fs.writeFileSync(file_path, file_content);
+				if (verbose) {
+					console.log("CREATING: " + file_path);
+				}
+                            }
+                        }
+                    }
+                }
             });
-	} else if (req.url == '/login') {
-	    req.on('data', function(data) {
-                var data_string = "" + data
-                fs.writeFileSync('example.txt', fs.readFileSync('example.txt') + "\n" + data_string);
+        } else if (req.url == '/save') {
+            req.on("data", function(data) {
+                var data_string = "" + data;
+                var filename;
+                var content;
+                if (data_string.split("&")[0] != null) {
+                    //filename = "client" + path.sep + data_string.split("&")[0].replace(/\%2F/g, path.sep);
+		    filename = "client" + path.sep + data_string.split("&")[0];
+                }
+                if (data_string.split("&")[1] != null) {
+                    //content = data_string.split("&")[1].replace(/\+/g, " ");
+		    content = data_string.split("&")[1];
+                }
+                fs.writeFileSync(filename, content);
             });
-	}
+        } else if (req.url == '/login') {
+            req.on('data', function(data) {
+                var fields = JSON.parse(data);
+
+		var fullName = fields.firstName + " " + fields.lastName;
+		var id = fields.id;
+		var emailAddress = fields.emailAddress;
+		var profile = fields.publicProfileUrl;
+		var time = getTimestamp();
+
+		var info = fullName + ", " + id + ", " + emailAddress + ", " + profile + ", " + time;
+
+                fs.writeFileSync('logins.csv', fs.readFileSync('logins.csv') + "\n" + info);
+            });
+        }
     }
-    //GET requests involve the index.html, run, exit, and all other files
+    /*
+    Following if statement handles GET requests
+    There are three types or req.url we check for
+	1. "/" or ""
+		Client is simply asking for html for PDA2:8080
+	2. "/run/USER-ID-HERE"
+		Client is asking for output of run command
+	3. anything else
+		Simply asking for a file (ex: styles.css)
+    */
     else if (req.method == "GET") {
-	console.log("DBG: GET URL : ", req.url);
-        //GET request made when the page loads (makes new id, creates new directory for client)
+	if (verbose) {
+		console.log("GET: ", req.url);
+	}
+        /*
+	GET request made when the page loads
+	Buttons are created for sidenav (directory and file buttons)
+	Specifics regarding which buttons to display are obtained from ServerUtil
+	*/
         if (req.url == "/" || req.url == "") {
+	    /*
+	    Data from Serverutil comes in format:
+	        [
+		['.', run.tcl, main.lib, lib.cfg]
+		[CELL1, FILE1]
+		[CELL2, FILE1, FILE2]
+		[CELLN, FILE1]
+		]
+		'.' represents no directory (subsequent files have no parent directory)
+		CELL1, CELL2, CELLN represent directories
+		Subsequent elements in each array (FILE1, FILE2) represent files to display of those directories
+	    */
             var dirs = ServerUtil.getFiles;
+	    //Reading the index file
             var index = "" + fs.readFileSync("index.html");
+	    /*
+	    Splitting the index file, before place where buttons are inserted
+	    We will concatenate html code for buttons to the end of this top half
+	    Then, we will add the bottom half of the index.html file with button html code sandwiched in between
+	    
+	    The code will look like following:
+		index.html top half
+		html for buttons (dir and files)
+		index.html bottom half
+	    */
             var content = index.split("<!--INSERT BUTTONS HERE-->")[0];
-            var files;
+	    //pathname stores where the files are located
             var pathname = ServerUtil.pathname;
 
+	    /*
+	    To parse the directories from ServerUtil, we will create a nested for loop to iterate through this two dimensional array
+	    Outer for loop will iterate through each directory [CELL1, FILE1]
+	    Inner for loop will iterate through elements of that directory
+	    */
             for (var i = 0; i < dirs.length; i++) {
+		//This for loop iterates through each array containing information regarding a single directory and its files
+		//dir stores a single array with directory and files: [CELL1, FILE1, FILE2]
                 var dir = dirs[i];
+		//directory stores the first element  of that array: CELL1, representing the directory name
                 var directory;
-                files = [];
+		//files stores the names of all the files in that directory: [FILE1, FILE2]
+                var files = [];
+		//we store the directory name and all files in that directory in this for loop
                 for (var j = 0; j < dir.length; j++) {
+		    //first element dir[0] is name of directory
+		    //all other elements dir[n] are files of given directory
                     if (j == 0) {
                         directory = dir[j];
                     } else {
                         files.push(dir[j]);
                     }
                 }
-                if (directory != ".") {
+		//at this point, we have variable directory storing the name of the directory
+		//and variable files storing all files in directory
+
+		//directory with value "." indicates that files have no parent directory (such as run.tcl, main.lib, lib.cfg)
+                if (directory == ".") {
+		    //we will now add 'file' buttons to content without a parent directory
+                    for (var j = 0; j < files.length; j++) {
+                        content += "<button class='file' name=" + path.sep + files[j] + ">" + files[j] + "</button>";
+                    }
+                } 
+		//if directory doesn't have value ".", it is an actual cell with files in that directory (CELL2 has FILE1 and FILE2)
+		else {
+		    //we will first add a 'dir' button with a div representing the contents of the directory
+		    //the contents of that div include the files within that directory
                     content += "<button class='dir' name=" + directory + ">" + directory + "<i class='caret-down'>&#9660</i></button><div class='file-container'>";
                     for (var j = 0; j < files.length; j++) {
                         content += "<button class='file' name=" + directory + path.sep + files[j] + ">" + files[j] + "</button>";
                     }
                     content += "</div>";
-                } else {
-                    for (var j = 0; j < files.length; j++) {
-                        content += "<button class='file' name=" + path.sep + files[j] + ">" + files[j] + "</button>";
-                    }
                 }
             }
+	    //Adding second half of index.html
             var content_end = index.split("<!--INSERT BUTTONS HERE-->")[1];
             content += content_end;
 
+	    //Prettifying the html, and writing it to res
             res.write(pretty(content));
             res.end();
         }
-
-
-        //GET request made when run button is clicked
-        //Creates child process to execute command
-        else if (req.url.substr(0,5) == "/run/") {
+        /*
+	GET request made when run button is clicked
+        Creates child process to execute command
+	URL of this request is passed in form /run/id-of-user
+	ID of client is extracted from url and passed in GUNA_RUNDIR through parameters of cp.spawn, along with user's run.tcl
+	*/
+        else if (req.url.substr(0, 5) == "/run/") {
             var id = req.url.substr(5);
-console.log('DBG: req=', req.url);
-console.log('DBG: id=', id);
             res.writeHead(200, {
                 "Content-Type": "text/event-stream",
                 "Cache-control": "no-cache"
             });
             process.env['PARIPATH_EVAL_LICENSE'] = 1
-            var GUNA_RUNDIR = 'client' + path.sep + id ;
-            //var GUNA_EXE = '/home/paripath/paripath/guna18.1/bin/guna';
+            var GUNA_RUNDIR = 'client' + path.sep + id;
             var GUNA_EXE = '/home/srohit/WORK/guna/src/Paripath/bin/guna';
-            var spw = cp.spawn(GUNA_EXE, ['run.tcl'], {cwd: GUNA_RUNDIR});
-            var str = "";
-
-            spw.stdout.on('data', function (data) {
+            var spw = cp.spawn(GUNA_EXE, ['run.tcl'], { cwd: GUNA_RUNDIR });
+	    
+	    /*
+	    Any data (stdout or stderr) is written to response
+	    Just as the process closes, 'ENDOFFILE' is concatenated to end of string
+	    This signals index.html to stop showing wait cursor and enable buttons
+	    */
+            spw.stdout.on('data', function(data) {
                 res.write(data);
             });
-            spw.stderr.on('data', function (data) {
+            spw.stderr.on('data', function(data) {
                 res.write(data);
             });
-            spw.on('close', function (code) {
-                res.end('exit '+code+'\n'+'ENDOFFILE');
+            spw.on('close', function(code) {
+                res.end('exit ' + code + '\n' + 'ENDOFFILE');
             });
         }
-        //reads any other file in same directory (or returns 404)
+	/*
+	miscellaneous get request handler - reads any other file in same directory (or returns 404)
+	no special instructions (unlike if statements above)
+	*/
         else {
             var url = req.url.substr(1);
             fs.readFile(url, function(err, data) {
                 if (err) {
-                    console.log("Fail: " + url);
+		    if (verbose) {
+			console.log("FAIL: " + url);
+		    }
                     res.write("ERROR 404: NOT FOUND");
                 } else {
-                    //res.writeHead(200, { 'Content-Type': 'text/' + url.split('.').pop() });
+                    res.writeHead(200, { 'Content-Type': 'text/' + url.split('.').pop() });
                     res.write(data);
                 }
                 res.end();
@@ -191,10 +293,11 @@ console.log('DBG: id=', id);
     }
 }
 
-//uses the function we just made to handle GET and POST requests
+//uses the logger function above to handle GET and POST requests
 app.use(logger);
 
-//app listens on localhost, port 8093
-PORT = 8080;
-app.listen(PORT, function() {});
-console.log('Server running on port ' + PORT);
+//app listens on localhost, specified port
+var PORT = 8080;
+app.listen(PORT, function() {
+     console.log('Server running on port ' + PORT);
+});
