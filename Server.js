@@ -19,9 +19,14 @@ var cp = require("child_process");
 //Prettifies code
 var pretty = require("pretty");
 
-var verbose = false;
+var verbose = true;
 if (verbose) {
 	console.log ("VERBOSE ON");
+}
+
+function trace(err) {
+        var stack = new Error().stack ;
+        console.log(stack);
 }
 
 function getTimestamp () {
@@ -33,9 +38,8 @@ function getTimestamp () {
 	var hours = login_date.getHours();
 	var minutes = login_date.getMinutes();
 	var seconds = login_date.getSeconds();
-	var milliseconds = login_date.getMilliseconds();
 
-	var time = hours + ":" + minutes + ":" + seconds + ":" + milliseconds + " " + month + "/" + date + "/" + year;
+	var time = hours + ":" + minutes + ":" + seconds + " " + month + "/" + date + "/" + year;
 	return time;
 }
 
@@ -47,21 +51,41 @@ res - response to the user (ex: if user asks for lib.cfg, we "write" the file to
 next - callback function passed in; not used in logger function
 */
 var logger = function(req, res, next) {
-    //Following if statement handles POST requests
+    /*
+    Following if statement handles POST requests
+    There are three types of req.url we check for
+	1. '/login'
+		This request is made automatically when a user logs in. Information about the user is passed in as data, and is recorded in a file.
+	2. '/mkdir'
+		This request is also automatically made when a user logs in. The id is passed in as data, and if the user is new or files are missing from the user's directory, new files are created, as well as their respective directories. This '/mkdir' request is segregated from '/login' because it performs a different task.
+	3. '/save'
+		This request is generated when the user a) clicks a different file or b) presses the save button. In case a) the save POST request is made while the new file is displayed.
+    */
     if (req.method == 'POST') {
         if (verbose) {
 		console.log("POST: ", req.url);
 	}
-        if (req.url == '/new') {
+	if (req.url == '/login') {
+            req.on('data', function(data) {
+                var fields = JSON.parse(data);
+
+		var fullName = fields.firstName + " " + fields.lastName;
+		var id = fields.id;
+		var emailAddress = fields.emailAddress;
+		var profile = fields.publicProfileUrl;
+		var time = getTimestamp();
+
+		var info = fullName + ", " + id + ", " + emailAddress + ", " + profile + ", " + time;
+
+                fs.writeFileSync('logins.csv', fs.readFileSync('logins.csv') + "\n" + info);
+            });
+        } else if (req.url == '/mkdir') {
             var dirs = ServerUtil.getFiles;
             var files = [];
 
             var pathname = ServerUtil.pathname;
 
             req.on("data", function(id) {
-		if (!fs.existsSync("client/" + id)) {
-                    fs.mkdirSync("client/" + id);
-            	}
                 copydir.sync("demo/data", "client/" + id + "/data");
                 for (var i = 0; i < dirs.length; i++) {
                     var dir = dirs[i];
@@ -120,27 +144,20 @@ var logger = function(req, res, next) {
                     //content = data_string.split("&")[1].replace(/\+/g, " ");
 		    content = data_string.split("&")[1];
                 }
-                fs.writeFileSync(filename, content);
-            });
-        } else if (req.url == '/login') {
-            req.on('data', function(data) {
-                var fields = JSON.parse(data);
-
-		var fullName = fields.firstName + " " + fields.lastName;
-		var id = fields.id;
-		var emailAddress = fields.emailAddress;
-		var profile = fields.publicProfileUrl;
-		var time = getTimestamp();
-
-		var info = fullName + ", " + id + ", " + emailAddress + ", " + profile + ", " + time;
-
-                fs.writeFileSync('logins.csv', fs.readFileSync('logins.csv') + "\n" + info);
+                if (verbose) {
+                    console.log("\t", filename);
+		}                
+                fs.writeFile(filename, content, function(err) { 
+		    if ( err  )
+                        trace(err); 
+                    return;		
+		});
             });
         }
     }
     /*
     Following if statement handles GET requests
-    There are three types or req.url we check for
+    There are three types of req.url we check for
 	1. "/" or ""
 		Client is simply asking for html for PDA2:8080
 	2. "/run/USER-ID-HERE"
@@ -268,7 +285,7 @@ var logger = function(req, res, next) {
                 res.write(data);
             });
             spw.on('close', function(code) {
-                res.end('exit ' + code + '\n' + 'ENDOFFILE');
+                res.end('exit ' + code + '\n' + 'ENDOFFILE'+'\n');
             });
         }
 	/*
@@ -281,6 +298,7 @@ var logger = function(req, res, next) {
                 if (err) {
 		    if (verbose) {
 			console.log("FAIL: " + url);
+                        trace(err)
 		    }
                     res.write("ERROR 404: NOT FOUND");
                 } else {
@@ -289,6 +307,12 @@ var logger = function(req, res, next) {
                 }
                 res.end();
             });
+/*
+	    var data = fs.readFileSync(url);
+	    res.writeHead(200, { 'Content-Type': 'text/' + url.split('.').pop() });
+	    res.write(data);
+	    res.end();
+*/
         }
     }
 }

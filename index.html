@@ -9,12 +9,17 @@
         authorize: true
     </script>
     <script type="text/javascript">
+        var LOGGEDIN = false ;
         function onLinkedInLoad() {
             IN.Event.on(IN, "auth", onLinkedInAuth);
         }
 
         function onLinkedInAuth() {
+            if ( LOGGEDIN ) {
+                return ;
+            }
             IN.API.Profile("me").fields("first-name", "last-name", "email-address", "public-profile-url", "id").result(function(data) {
+		//console.log(JSON.stringify(data));
 		var fields = data.values["0"];		
 
                 var login = new XMLHttpRequest();
@@ -27,10 +32,11 @@
                 document.getElementById('login_screen').style.display = 'none';
 
                 var mkdir = new XMLHttpRequest();
-                mkdir.open('POST', '/new', true);
+                mkdir.open('POST', '/mkdir', true);
                 mkdir.send(id);
 
 		open_file ("/run.tcl", id);
+                LOGGEDIN = true ;
 		
             }).error(function(data) {
                 console.log(data);
@@ -63,13 +69,12 @@
             <hr id='break' />
         </center>
         <!--INSERT BUTTONS HERE-->
-        <div style="display: flex; justify-content: center;">
-        </div>
     </div>
     <textarea id='current-file' name='file-name' readonly></textarea>
-    <textarea id='editor' name='content' class='content'></textarea>
-    <pre>
-    <textarea readonly id='terminal'>
+    <div id="workspace">
+	    <textarea id='editor' name='content' class='content'></textarea>
+	    <div id="workspace_separator"></div>
+	    <pre><textarea readonly id='terminal'>
 Guna Explorer (Community Edition), v55.18. (c) Paripath Inc.
 ------------------------------------------------------------
 
@@ -78,8 +83,8 @@ To characterize available cells/IPs:
     2. Add, Delete available cells.
     3. Click Run.
     4. See your results in main.lib.
-    </textarea>
-    </pre>
+	    </textarea></pre>
+    </div>
 </body>
 
 <script>
@@ -158,18 +163,18 @@ To characterize available cells/IPs:
     function save(callback) {
         var currentfile = document.getElementById('current-file').value.substr(0,1)=="/"?document.getElementById('identification').innerHTML + document.getElementById('current-file').value:document.getElementById('identification').innerHTML + "/" + document.getElementById('current-file').value;
         var fext = currentfile.slice((currentfile.lastIndexOf(".") - 1 >>> 0) + 2);
-        if (currentfile == "" || (fext != 'cfg' && fext != 'tcl')) {
-            callback();
-            return;
+        if (currentfile != "" && (fext == 'cfg' || fext == 'tcl')) {
+		var content = document.getElementById('editor').value;
+		if ( content != "" ) {
+		    var http = new XMLHttpRequest();
+		    http.open('POST', '/save', true);
+		    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		
+		    var params = currentfile;
+		    params += "&" + content;
+		    http.send(params);
+		}
         }
-
-        var http = new XMLHttpRequest();
-        http.open('POST', '/save', true);
-        http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        var content = document.getElementById('editor').value;
-        var params = currentfile;
-        params += "&" + content;
-        http.send(params);
         callback();
     }
 
@@ -195,62 +200,85 @@ To characterize available cells/IPs:
         });
     });
 
+    var DISABLED = false;
     function update(text) {
 	var id = document.getElementById('identification').innerHTML;
         var terminal = document.getElementById('terminal');
         terminal.value = text;
-	open_file("/main.lib", id);
         if (text.includes("ENDOFFILE") == true) {
-            text = text.replace("ENDOFFILE", "");
-            document.getElementById('editor').style.cursor = "auto";
-            document.getElementById('terminal').style.cursor = "auto";
-            document.getElementById('run-button').style.cursor = "auto";
-            document.getElementById('run-button').disabled = false;
-            document.getElementById('save-button').style.cursor = "auto";
-            document.getElementById('save-button').disabled = false;
-            var dropdown = document.getElementsByClassName('dir');
-            for (var i = 0; i < dropdown.length; i++) {
-                dropdown[i].style.cursor = "auto";
-                dropdown[i].disabled = false;
-            }
+	    if (DISABLED) {
+		    document.getElementById('editor').style.cursor = "auto";
+		    document.getElementById('terminal').style.cursor = "auto";
+		    document.getElementById('run-button').style.cursor = "auto";
+		    document.getElementById('run-button').disabled = false;
+		    document.getElementById('save-button').style.cursor = "auto";
+		    document.getElementById('save-button').disabled = false;
+		    document.getElementById('exit-button').style.cursor = "auto";
+		    document.getElementById('exit-button').disabled = false;
 
-            var file = document.getElementsByClassName('file');
-            for (var i = 0; i < file.length; i++) {
-                file[i].style.cursor = "auto";
-                file[i].disabled = false;
-            }
+		    document.getElementById("editor").disabled = false;
+
+		    var dropdown = document.getElementsByClassName('dir');
+		    for (var i = 0; i < dropdown.length; i++) {
+		        dropdown[i].style.cursor = "auto";
+		        dropdown[i].disabled = false;
+		    }
+
+		    var file = document.getElementsByClassName('file');
+		    for (var i = 0; i < file.length; i++) {
+		        file[i].style.cursor = "auto";
+		        file[i].disabled = false;
+		    }
+		    DISABLED = false;
+                    console.log("IS DISABLED: " + DISABLED);
+	    }
+            open_file("/main.lib", id);
+            terminal.value = text.replace("ENDOFFILE", "");
         } else {
-            document.getElementById('editor').style.cursor = "wait";
-            document.getElementById('terminal').style.cursor = "wait";
-            document.getElementById('run-button').style.cursor = "wait";
-            document.getElementById('run-button').disabled = true;
-            document.getElementById('save-button').style.cursor = "wait";
-            document.getElementById('save-button').disabled = true;
-            var dropdown = document.getElementsByClassName('dir');
-            for (var i = 0; i < dropdown.length; i++) {
-                dropdown[i].style.cursor = "wait";
-                dropdown[i].disabled = true;
-            }
+	    if (!DISABLED) {
+		    document.getElementById('editor').style.cursor = "wait";
+		    document.getElementById('terminal').style.cursor = "wait";
+		    document.getElementById('run-button').style.cursor = "wait";
+		    document.getElementById('run-button').disabled = true;
+		    document.getElementById('save-button').style.cursor = "wait";
+		    document.getElementById('save-button').disabled = true;
+		    document.getElementById('exit-button').style.cursor = "wait";
+		    document.getElementById('exit-button').disabled = true;
 
-            var file = document.getElementsByClassName('file');
-            for (var i = 0; i < file.length; i++) {
-                file[i].style.cursor = "wait";
-                file[i].disabled = true;
-            }
+		    document.getElementById("editor").disabled = true;
+
+		    var dropdown = document.getElementsByClassName('dir');
+		    for (var i = 0; i < dropdown.length; i++) {
+		        dropdown[i].style.cursor = "wait";
+		        dropdown[i].disabled = true;
+		    }
+
+		    var file = document.getElementsByClassName('file');
+		    for (var i = 0; i < file.length; i++) {
+		        file[i].style.cursor = "wait";
+		        file[i].disabled = true;
+		    }
+	    	    DISABLED = true;
+		    console.log("IS DISABLED: " + DISABLED);
+	    }
         }
     }
 
+    //This function slows everything down
     function httpGetAsync(theUrl, callback) {
+	console.log(' httpGet: ' + theUrl);
         var xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = function() {
-            if ((xmlHttp.readyState == 4 || xmlHttp.readyState == 3) && xmlHttp.status == 200) {
+	    console.log ('httpStateChange: ' + theUrl + "readyState: " + xmlHttp.readyState);
+	    //Things slow down here
+	    if ((xmlHttp.readyState == 4 || xmlHttp.readyState == 3) && xmlHttp.status == 200) {
                 callback(xmlHttp.responseText);
             } else {
                 //console.log("readyState: " + xmlHttp.readyState);
                 //console.log("status: " + xmlHttp.status);
             }
         }
-        xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+        xmlHttp.open("GET", theUrl, true); // true --> asynchronous 
         xmlHttp.send(null);
     }
 </script>
