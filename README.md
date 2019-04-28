@@ -1,6 +1,6 @@
 # Node.js Web App
 
-This web app was created for the purpose of serving as a cloud-based IDE. Node.js is used to handle requests made by the client to the server.
+This web app was created for the purpose of serving as a cloud-based IDE. Node.js is used to handle requests made by the client to the server. Feel free to try out and modify the code!
 
 ## Architecture
 
