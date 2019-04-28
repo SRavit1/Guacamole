@@ -2,7 +2,9 @@
 
 This web app was created for the purpose of serving as a cloud-based IDE. Node.js is used to handle requests made by the client to the server. This is the link to the finalized web app: http://178.128.178.46/. Feel free to try out and modify the code!
 
-![alt text](https://github.com/SRavit1/Node.js-Web-App/blob/master/Web%20App.png "Web App")
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=krFMRLHh-qE"
+target="_blank"> <img src="https://github.com/SRavit1/Node.js-Web-App/blob/master/Web%20App.png" 
+alt="Web App" border="10" /></a>
 
 ## Architecture
 
